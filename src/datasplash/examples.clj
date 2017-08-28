@@ -33,10 +33,10 @@
   (format "%s: %d" k v))
 
 (ds/defoptions WordCountOptions
-  {:input {:type String
+  {:input {:type java.lang.String
            :default "gs://dataflow-samples/shakespeare/kinglear.txt"
            :description "Path of the file to read from"}
-   :output {:type String
+   :output {:type java.lang.String
             :default "kinglear-freqs.txt"
             :description "Path of the file to write to"}
    :numShards {:type Long
@@ -61,10 +61,10 @@
 ;; Port of https://github.com/GoogleCloudPlatform/DataflowJavaSDK/blob/master/examples/src/main/java/com/google/cloud/dataflow/examples/cookbook/DeDupExample.java
 
 (ds/defoptions DeDupOptions
-  {:input {:type String
+  {:input {:type java.lang.String
            :default "gs://dataflow-samples/shakespeare/*"
            :description "Path of the file to read from"}
-   :output {:type String
+   :output {:type java.lang.String
             :default "shakespeare-dedup.txt"
             :description "Path of the file to write to"}})
 
@@ -84,10 +84,10 @@
 ;; Port of https://github.com/GoogleCloudPlatform/DataflowJavaSDK/blob/master/examples/src/main/java/com/google/cloud/dataflow/examples/cookbook/FilterExamples.java
 
 (ds/defoptions FilterOptions
-  {:input {:type String
+  {:input {:type java.lang.String
            :default "clouddataflow-readonly:samples.weather_stations"
            :description "Table to read from, specified as <project_id>:<dataset_id>.<table_id>"}
-   :output {:type String
+   :output {:type java.lang.String
             :default "filterRes.edn"
             :description "Table to write to, specified as <project_id>:<dataset_id>.<table_id>. The dataset_id must already exist. If given a path, writes to edn."}
    :monthFilter {:type Long
@@ -132,10 +132,10 @@
 ;; Port of https://github.com/GoogleCloudPlatform/DataflowJavaSDK/blob/master/examples/src/main/java/com/google/cloud/dataflow/examples/cookbook/CombinePerKeyExamples.java
 
 (ds/defoptions CombinePerKeyOptions
-  {:input {:type String
+  {:input {:type java.lang.String
            :default "publicdata:samples.shakespeare"
            :description "Table to read from, specified as <project_id>:<dataset_id>.<table_id>"}
-   :output {:type String
+   :output {:type java.lang.String
             :default "combinePerKeyRes.edn"
             :description "Table to write to, specified as <project_id>:<dataset_id>.<table_id>. The dataset_id must already exist. If given a path, writes to edn."}
    :minWordLength {:type Long
@@ -155,8 +155,8 @@
                       {:scope :per-key})
                      (ds/map (fn [[word plays]] {:word word :all_plays plays})))]
     (if (re-find #":[^/]" output)
-      (bq/write-bq-table output {:schema [{:name "word" :type "STRING"}
-                                          {:name "all_plays" :type "STRING"}]
+      (bq/write-bq-table output {:schema [{:name "word" :type java.lang.String}
+                                          {:name "all_plays" :type java.lang.String}]
                                  :create-disposition :if-needed
                                  :write-disposition :truncate}
                          results)
@@ -169,10 +169,10 @@
 ;; Port of https://github.com/GoogleCloudPlatform/DataflowJavaSDK/blob/master/examples/src/main/java/com/google/cloud/dataflow/examples/cookbook/MaxPerKeyExamples.java
 
 (ds/defoptions MaxPerKeyOptions
-  {:input {:type String
+  {:input {:type java.lang.String
            :default "clouddataflow-readonly:samples.weather_stations"
            :description "Table to read from, specified as <project_id>:<dataset_id>.<table_id>"}
-   :output {:type String
+   :output {:type java.lang.String
             :default "maxperKeyRes.edn"
             :description "Table to write to, specified as <project_id>:<dataset_id>.<table_id>. The dataset_id must already exist. If given a path, writes to edn."}})
 
@@ -204,12 +204,12 @@
 ;; Test calling lein run standard-sql --stagingLocation=gs://[your-bucket]/jars --output gs://[your-bucket]/
 
 (ds/defoptions StandardSQLOptions
-  {:input {:type String
+  {:input {:type java.lang.String
            :default "bigquery-public-data.samples.shakespeare"
            :description "Table to read from, specified as <project_id>:<dataset_id>.<table_id>"}
-   :output {:type String
+   :output {:type java.lang.String
             :description "File to write the result to"}
-   :tempLocation {:type String
+   :tempLocation {:type java.lang.String
                      :description "Google Cloud Storage where BigQuery.Read stage local files."}})
 
 (defn run-standard-sql-query
@@ -232,17 +232,17 @@
 ;; Port of https://github.com/GoogleCloudPlatform/DataflowJavaSDK/blob/master/examples/src/main/java/com/google/cloud/dataflow/examples/cookbook/DatastoreWordCount.java
 
 (ds/defoptions DatastoreWordCountOptions
-  {:input {:type String
+  {:input {:type java.lang.String
            :default "gs://dataflow-samples/shakespeare/kinglear.txt"
            :description "Path of the file to read from"}
-   :output {:type String
+   :output {:type java.lang.String
             :default "kinglear-freqs.txt"
             :description "Path of the file to write to"}
-   :dataset {:type String
+   :dataset {:type java.lang.String
              :description "Dataset ID to read from Cloud Datastore"}
-   :kind {:type String
+   :kind {:type java.lang.String
           :description "Cloud Datastore Entity Kind"}
-   :namespace {:type String
+   :namespace {:type java.lang.String
                :description "Dataset Namespace"}
    :isReadOnly {:type Boolean
                 :description "Read an existing dataset, do not write first"}
@@ -306,9 +306,9 @@
 ;; before you run this
 
 (ds/defoptions PubSubOptions
-   {:project {:type String
+   {:project {:type java.lang.String
               :description "Google Cloud Project where your PubSub runs."}
-    :stagingLocation {:type String
+    :stagingLocation {:type java.lang.String
                       :description "Google Cloud Storage to stage local files."}})
 
 (defn stream-interactions-from-pubsub
@@ -351,7 +351,7 @@
 
 (defn -main
   [job & args]
-  (compile 'datasplash.examples)
+  #_(compile 'datasplash.examples)
   (-> (case job
         "word-count" (run-word-count args)
         "dedup" (run-dedup args)

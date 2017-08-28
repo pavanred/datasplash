@@ -10,29 +10,29 @@
             [clj-time.coerce :as timc]
             [clj-time.core :as time])
   (:import [clojure.lang MapEntry ExceptionInfo]
-           [com.google.cloud.dataflow.sdk Pipeline]
-           [com.google.cloud.dataflow.sdk.coders StringUtf8Coder CustomCoder Coder$Context KvCoder IterableCoder]
-           [com.google.cloud.dataflow.sdk.io
+           [org.apache.beam.sdk Pipeline]
+           [org.apache.beam.sdk.coders StringUtf8Coder CustomCoder Coder$Context KvCoder IterableCoder]
+           [org.apache.beam.sdk.io
             TextIO$Read TextIO$Write TextIO$CompressionType]
-           [com.google.cloud.dataflow.sdk.options PipelineOptionsFactory GcsOptions]
-           [com.google.cloud.dataflow.sdk.transforms
-            DoFn DoFn$Context DoFn$ProcessContext ParDo DoFnTester Create PTransform
-            Partition Partition$PartitionFn IntraBundleParallelization
-            SerializableFunction WithKeys GroupByKey RemoveDuplicates Count
+           [org.apache.beam.sdk.options PipelineOptionsFactory]
+           [org.apache.beam.sdk.extensions.gcp.options GcsOptions]
+           [org.apache.beam.sdk.transforms DoFn DoFn$WindowedContext DoFn$ProcessContext ParDo DoFnTester Create PTransform DoFn$StartBundleContext DoFn$FinishBundleContext
+            Partition Partition$PartitionFn                 ;IntraBundleParallelization
+            SerializableFunction WithKeys GroupByKey Count ;RemoveDuplicates
             Flatten Combine$CombineFn Combine View View$AsSingleton Sample]
-           [com.google.cloud.dataflow.sdk.transforms.join KeyedPCollectionTuple CoGroupByKey
+           [org.apache.beam.sdk.transforms.join KeyedPCollectionTuple CoGroupByKey
             CoGbkResult$CoGbkResultCoder UnionCoder CoGbkResult]
-           [com.google.cloud.dataflow.sdk.util GcsUtil UserCodeException]
-           [com.google.cloud.dataflow.sdk.util.common Reiterable]
-           [com.google.cloud.dataflow.sdk.util.gcsfs GcsPath]
-           [com.google.cloud.dataflow.sdk.values KV PCollection TupleTag TupleTagList PBegin
+           [org.apache.beam.sdk.util GcsUtil UserCodeException]
+           [org.apache.beam.sdk.util.common Reiterable]
+           [org.apache.beam.sdk.util.gcsfs GcsPath]
+           [org.apache.beam.sdk.values KV PCollection TupleTag TupleTagList PBegin
             PCollectionList PInput PCollectionTuple]
            [java.io InputStream OutputStream DataInputStream DataOutputStream File]
            [java.net URI]
            [java.util UUID]
            [org.joda.time DateTimeUtils DateTimeZone]
            [org.joda.time.format DateTimeFormat DateTimeFormatter]
-           [com.google.cloud.dataflow.sdk.transforms.windowing Window FixedWindows SlidingWindows Sessions Trigger]
+           [org.apache.beam.sdk.transforms.windowing Window FixedWindows SlidingWindows Sessions Trigger]
            [org.joda.time Duration Instant]))
 
 (def required-ns (atom #{}))
@@ -206,8 +206,8 @@
                     *side-inputs* side-ins
                     *main-output* (when side-outputs (first (sort side-outputs)))]
             (f context)))))
-     (startBundle [^DoFn$Context context] (safe-exec-cfg opts (start-bundle context)))
-     (finishBundle [^DoFn$Context context] (safe-exec-cfg opts (finish-bundle context)))))
+     (startBundle [^DoFn$StartBundleContext context] (safe-exec-cfg opts (start-bundle context)))
+     (finishBundle [^DoFn$FinishBundleContext context] (safe-exec-cfg opts (finish-bundle context)))))
   ([f] (dofn f {})))
 
 (defn context
@@ -398,7 +398,7 @@ See https://cloud.google.com/dataflow/java-sdk/JavaDoc/com/google/cloud/dataflow
 (defrecord GroupSpecs [specs]
   PInput
   (expand [this] (map first specs))
-  (finishSpecifying [this] nil)
+  ;(finishSpecifying [this] nil);TODO what is this
   (getPipeline [this] (let [^PInput pval (-> specs (first) (first))]
                         (.getPipeline pval)))
   IApply
@@ -505,7 +505,8 @@ See https://cloud.google.com/dataflow/java-sdk/JavaDoc/com/google/cloud/dataflow
            opts (merge (assoc base-options :coder default-coder) options)
            ^DoFn bare-dofn (dofn (transform f) opts)
            pardo (if intra-bundle-parallelization
-                   (.withMaxParallelism
+                   (ParDo/of bare-dofn)
+                   #_(.withMaxParallelism
                     (IntraBundleParallelization/of bare-dofn) intra-bundle-parallelization)
                    (ParDo/of bare-dofn))]
        (apply-transform pcoll pardo pardo-schema opts)))
@@ -699,7 +700,7 @@ This function is reminiscent of the reducers api. In has sensible defaults in or
   ([pcoll] (view {} pcoll)))
 
 (defn- to-edn*
-  [^DoFn$Context c]
+  [^DoFn$ProcessContext c]
   (let [elt (.element c)
         result (pr-str elt)]
     (.output c result)))
@@ -998,7 +999,7 @@ It means the template %A-%U-%T is equivalent to the default jobName"
   ([^Pipeline p]
    (dissoc (bean (.getOptions p)) :class))
   ([]
-   (when-let [^DoFn$Context c *context*]
+   (when-let [^DoFn c *context*]
      (-> (.getPipelineOptions c)
          (bean)
          (dissoc :class)))))
@@ -1098,7 +1099,7 @@ See https://cloud.google.com/dataflow/java-sdk/JavaDoc/com/google/cloud/dataflow
                   (assoc :label (str "write-text-file-to-"
                                      (clean-filename to))
                          :coder nil))]
-     (apply-transform pcoll (TextIO$Write/to to)
+     (apply-transform pcoll ((.to TextIO$Write) to)
                       (merge named-schema text-writer-schema) opts)))
   ([to pcoll] (write-text-file to {} pcoll)))
 
@@ -1120,7 +1121,7 @@ Example:
                              (StringUtf8Coder/of)))]
      (-> p
          (cond-> (instance? Pipeline p) (PBegin/in))
-         (apply-transform (TextIO$Read/from from)
+         (apply-transform ((.from TextIO$Read) from)
                           (merge named-schema text-reader-schema) opts))))
   ([from p] (read-text-file from {} p)))
 
@@ -1503,7 +1504,7 @@ See https://cloud.google.com/dataflow/java-sdk/JavaDoc/com/google/cloud/dataflow
                      (throw (ex-info "Wrong type of argument for join-by, join-fn is now passed as a :collector key in options" {:specs specs}))
                      (join-by options specs nil))))
 
-(defn ddistinct
+#_(defn ddistinct
   {:doc (with-opts-docstr
           "Removes duplicate element from PCollection.
 

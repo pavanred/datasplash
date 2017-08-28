@@ -5,7 +5,16 @@
             :url  "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[cheshire "5.7.0"]
                  [clj-stacktrace "0.2.8"]
-                 [com.google.cloud.dataflow/google-cloud-dataflow-java-sdk-all "1.9.0"]
+                 ;[com.google.cloud.dataflow/google-cloud-dataflow-java-sdk-all "1.9.0"]
+
+                 [com.google.protobuf/protobuf-java "3.3.1"]
+                 [com.google.apis/google-api-services-bigquery "v2-rev355-1.22.0"]
+                 [org.apache.beam/beam-sdks-java-core                     "2.0.0" :exclusions [io.grpc/grpc-core io.netty/netty-codec-http2]]
+                 [org.apache.beam/beam-sdks-java-io-kinesis               "2.0.0" :exclusions [io.grpc/grpc-core io.netty/netty-codec-http2]]
+                 [org.apache.beam/beam-runners-direct-java                "2.0.0" :exclusions [io.grpc/grpc-core io.netty/netty-codec-http2]]
+                 [org.apache.beam/beam-runners-flink_2.10                 "2.0.0" :exclusions [io.grpc/grpc-core io.netty/netty-codec-http2]]
+                 [org.apache.beam/beam-runners-google-cloud-dataflow-java "2.0.0" :exclusions [io.grpc/grpc-core io.netty/netty-codec-http2]]
+
                  [com.taoensso/nippy "2.13.0"]
                  [org.clojure/clojure "1.8.0"]
                  [org.clojure/math.combinatorics "0.1.4"]

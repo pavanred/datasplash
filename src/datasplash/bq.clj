@@ -7,33 +7,33 @@
             [clojure.tools.logging :as log]
             [datasplash.core :refer :all])
   (:import
-   [org.codehaus.jackson.map.ObjectMapper]
-   [com.google.api.services.bigquery.model
-    TableRow TableFieldSchema TableSchema]
-   [com.google.cloud.dataflow.sdk Pipeline]
-   [com.google.cloud.dataflow.sdk.io
-    BigQueryIO$Read BigQueryIO$Write
-    BigQueryIO$Write$WriteDisposition
-    BigQueryIO$Write$CreateDisposition]
-   [com.google.cloud.dataflow.sdk.values PBegin PCollection]
-   [com.google.cloud.dataflow.sdk.coders TableRowJsonCoder]))
+    [org.codehaus.jackson.map.ObjectMapper]
+    [com.google.api.services.bigquery.model
+     TableRow TableFieldSchema TableSchema]
+    [org.apache.beam.sdk Pipeline]
+    [org.apache.beam.sdk.io.gcp.bigquery
+     BigQueryIO$Read BigQueryIO$Write
+     BigQueryIO$Write$WriteDisposition
+     BigQueryIO$Write$CreateDisposition]
+    [org.apache.beam.sdk.values PBegin PCollection]
+    [org.apache.beam.sdk.io.gcp.bigquery TableRowJsonCoder]))
 
 (defn read-bq-raw
   [{:keys [query table standard-sql?] :as options} p]
   (let [opts (assoc options :label :read-bq-table-raw)
         ptrans (cond
-                 query (BigQueryIO$Read/fromQuery query)
-                 table (BigQueryIO$Read/from table)
+                 query (.fromQuery BigQueryIO$Read query)
+                 table (.from BigQueryIO$Read table)
                  :else (throw (ex-info
-                               "Error with options of read-bq-table, should specify one of :table or :query"
-                               {:options options})))]
+                                "Error with options of read-bq-table, should specify one of :table or :query"
+                                {:options options})))]
     (-> p
         (cond-> (instance? Pipeline p) (PBegin/in))
         (apply-transform
-         (if (and standard-sql? query)
-           (.usingStandardSql ptrans)
-           ptrans)
-         named-schema opts))))
+          (if (and standard-sql? query)
+            (.usingStandardSql ptrans)
+            ptrans)
+          named-schema opts))))
 
 (defn auto-parse-val
   [v]
@@ -45,17 +45,17 @@
   ([{:keys [auto-parse]} ^TableRow row]
    (let [keyset (.keySet row)]
      (persistent!
-      (reduce
-       (fn [acc k]
-         (assoc! acc (keyword k)
-                 (let [raw-v (get row k)]
-                   (cond
-                     (instance? java.util.List raw-v) (if (instance? java.util.AbstractMap (first raw-v))
-                                                        (map #(table-row->clj {:auto-parse auto-parse} %) raw-v)
-                                                        (map #(if auto-parse (auto-parse-val %) %) raw-v))
-                     (instance? java.util.AbstractMap raw-v) (table-row->clj {:auto-parse auto-parse} raw-v)
-                     :else (if auto-parse (auto-parse-val raw-v) raw-v)))))
-       (transient {}) keyset))))
+       (reduce
+         (fn [acc k]
+           (assoc! acc (keyword k)
+                   (let [raw-v (get row k)]
+                     (cond
+                       (instance? java.util.List raw-v) (if (instance? java.util.AbstractMap (first raw-v))
+                                                          (map #(table-row->clj {:auto-parse auto-parse} %) raw-v)
+                                                          (map #(if auto-parse (auto-parse-val %) %) raw-v))
+                       (instance? java.util.AbstractMap raw-v) (table-row->clj {:auto-parse auto-parse} raw-v)
+                       :else (if auto-parse (auto-parse-val raw-v) raw-v)))))
+         (transient {}) keyset))))
   ([row] (table-row->clj {} row)))
 
 (defn coerce-by-bq-val
@@ -87,10 +87,10 @@
     ;; only apply to maps
     (clojure.walk/postwalk (fn [x] (if (map? x)
                                      (persistent!
-                                      (reduce
-                                       (fn [acc [k v]]
-                                         (assoc! acc (clean-name k) v))
-                                       (transient {}) x))
+                                       (reduce
+                                         (fn [acc [k v]]
+                                           (assoc! acc (clean-name k) v))
+                                         (transient {}) x))
                                      x))
                            m)))
 
@@ -118,11 +118,11 @@
   [options]
   (let [safe-opts (dissoc options :name)]
     (ptransform
-     :read-bq-to-clj
-     [pcoll]
-     (->> pcoll
-          (read-bq-raw safe-opts)
-          (dmap (partial table-row->clj safe-opts) safe-opts)))))
+      :read-bq-to-clj
+      [pcoll]
+      (->> pcoll
+           (read-bq-raw safe-opts)
+           (dmap (partial table-row->clj safe-opts) safe-opts)))))
 
 (defn read-bq
   [options ^Pipeline p]
@@ -132,11 +132,11 @@
 (defn- clj->TableFieldSchema
   [defs transform-keys]
   (for [{:keys [type mode] field-name :name nested-fields :fields} defs]
-       (-> (TableFieldSchema.)
-           (.setName (transform-keys (clean-name field-name)))
-           (.setType  (str/upper-case (name type)))
-           (cond-> mode (.setMode mode))
-           (cond-> nested-fields (.setFields (clj->TableFieldSchema nested-fields transform-keys))))))
+    (-> (TableFieldSchema.)
+        (.setName (transform-keys (clean-name field-name)))
+        (.setType  (str/upper-case (name type)))
+        (cond-> mode (.setMode mode))
+        (cond-> nested-fields (.setFields (clj->TableFieldSchema nested-fields transform-keys))))))
 
 (defn ->schema
   ^TableSchema
@@ -168,43 +168,43 @@
 
 (def write-bq-table-schema
   (merge
-   base-schema
-   {:schema {:docstr "Specifies bq schema."
-             :action (fn [transform schema] (.withSchema transform (->schema schema)))}
-    :write-disposition {:docstr "Choose write disposition."
-                        :enum write-disposition-enum
-                        :action (select-enum-option-fn
-                                 :write-disposition
-                                 write-disposition-enum
-                                 (fn [transform enum] (.withWriteDisposition transform enum)))}
-    :create-disposition {:docstr "Choose create disposition."
-                         :enum create-disposition-enum
+    base-schema
+    {:schema {:docstr "Specifies bq schema."
+              :action (fn [transform schema] (.withSchema transform (->schema schema)))}
+     :write-disposition {:docstr "Choose write disposition."
+                         :enum write-disposition-enum
                          :action (select-enum-option-fn
-                                  :create-disposition
-                                  create-disposition-enum
-                                  (fn [transform enum] (.withCreateDisposition transform enum)))}
-    :without-validation {:docstr "Disables validation until runtime."
-                         :action (fn [transform] (.withoutValidation transform))}}))
+                                   :write-disposition
+                                   write-disposition-enum
+                                   (fn [transform enum] (.withWriteDisposition transform enum)))}
+     :create-disposition {:docstr "Choose create disposition."
+                          :enum create-disposition-enum
+                          :action (select-enum-option-fn
+                                    :create-disposition
+                                    create-disposition-enum
+                                    (fn [transform enum] (.withCreateDisposition transform enum)))}
+     :without-validation {:docstr "Disables validation until runtime."
+                          :action (fn [transform] (.withoutValidation transform))}}))
 
 (defn write-bq-table-raw
   ([to options ^PCollection pcoll]
    (let [opts (assoc options :label :write-bq-table-raw)]
-     (apply-transform pcoll (BigQueryIO$Write/to to) write-bq-table-schema opts)))
+     (apply-transform pcoll (.to BigQueryIO$Write to) write-bq-table-schema opts)))
   ([to pcoll] (write-bq-table-raw to {} pcoll)))
 
 (defn- write-bq-table-clj-transform
   [to options]
   (let [safe-opts (dissoc options :name)]
     (ptransform
-     :write-bq-table-from-clj
-     [^PCollection pcoll]
-     (let [schema (:schema options)
-           base-coll pcoll]
-       (->> base-coll
-            (dmap clj-nested->table-row (-> safe-opts
-                                            (assoc :coder (TableRowJsonCoder/of))
-                                            (dissoc :schema)))
-            (write-bq-table-raw to safe-opts))))))
+      :write-bq-table-from-clj
+      [^PCollection pcoll]
+      (let [schema (:schema options)
+            base-coll pcoll]
+        (->> base-coll
+             (dmap clj-nested->table-row (-> safe-opts
+                                             (assoc :coder (TableRowJsonCoder/of))
+                                             (dissoc :schema)))
+             (write-bq-table-raw to safe-opts))))))
 
 (defn write-bq-table
   ([to options ^PCollection pcoll]

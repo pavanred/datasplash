@@ -3,7 +3,7 @@
             [clojure.test :refer :all])
   (:import [com.google.datastore.v1 Entity]
            [java.util Date]))
-           
+
 (deftest datastore-conversion
   (let [o {:string "string" :integer 42 :double 65.78 :nil nil
            :array [1 "two" 3] :entity {:deeply "nested"}}

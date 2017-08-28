@@ -42,7 +42,7 @@
 (intern *ns* (with-meta 'run-pipeline (meta #'dt/run-pipeline)) @#'dt/run-pipeline)
 (intern *ns* (with-meta 'cogroup-by (meta #'dt/cogroup-by)) @#'dt/cogroup-by)
 (intern *ns* (with-meta 'join-by (meta #'dt/join-by)) @#'dt/join-by)
-(intern *ns* (with-meta 'distinct (meta #'dt/ddistinct)) @#'dt/ddistinct)
+#_(intern *ns* (with-meta 'distinct (meta #'dt/ddistinct)) @#'dt/ddistinct)
 (intern *ns* (with-meta 'sample (meta #'dt/sample)) @#'dt/sample)
 (intern *ns* (with-meta 'flatten (meta #'dt/dflatten)) @#'dt/dflatten)
 (intern *ns* (with-meta 'concat (meta #'dt/dconcat)) @#'dt/dconcat)

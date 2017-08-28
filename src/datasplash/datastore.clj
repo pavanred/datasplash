@@ -1,11 +1,11 @@
 (ns datasplash.datastore
   (:require [datasplash.core :refer :all])
   (:import
-   [com.google.datastore.v1.client DatastoreHelper]
-   [com.google.cloud.dataflow.sdk.io.datastore DatastoreIO]
-   [com.google.datastore.v1 Entity Value Key Entity$Builder Key$Builder Value$Builder Value$ValueTypeCase Key$PathElement]
-   [com.google.protobuf ByteString NullValue]
-   [java.util Collections$UnmodifiableMap$UnmodifiableEntrySet$UnmodifiableEntry Date])
+    [com.google.datastore.v1.client DatastoreHelper]
+    [org.apache.beam.sdk.io.gcp.datastore DatastoreIO]
+    [com.google.datastore.v1 Entity Value Key Entity$Builder Key$Builder Value$Builder Value$ValueTypeCase Key$PathElement]
+    [com.google.protobuf ByteString NullValue]
+    [java.util Collections$UnmodifiableMap$UnmodifiableEntrySet$UnmodifiableEntry Date])
   (:gen-class))
 
 (defn write-datastore-raw
@@ -61,10 +61,10 @@
   "Converts a Datastore Entity to a Clojure map with the same properties. Repeated fields are handled as vectors and nested Entities as maps. All keys are turned to keywords. If the entity has a Key, Kind or Namespace, these can be found as :key, :kind, :namespace and :ancestors in the meta of the returned map"
   [^Entity e]
   (let [props (persistent!
-               (reduce (fn [acc ^Collections$UnmodifiableMap$UnmodifiableEntrySet$UnmodifiableEntry kv]
-                         (let [value (value->clj (.getValue kv))]
-                           (assoc! acc (keyword (.getKey kv)) value)))
-                       (transient {}) (.getProperties e)))
+                (reduce (fn [acc ^Collections$UnmodifiableMap$UnmodifiableEntrySet$UnmodifiableEntry kv]
+                          (let [value (value->clj (.getValue kv))]
+                            (assoc! acc (keyword (.getKey kv)) value)))
+                        (transient {}) (.getProperties e)))
         [^Key k key-name kind path] (when (.hasKey e) (let [k (.getKey e)
                                                             results (map (fn [^Key$PathElement p]
                                                                            {:kind (.getKind p) :key (.getName p)})
